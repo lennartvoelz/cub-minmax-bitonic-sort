@@ -1,0 +1,26 @@
+# https://clangd.llvm.org/config
+
+CompileFlags:
+  CompilationDatabase: build
+
+---
+
+If:
+  PathMatch: .*\.cuh?
+CompileFlags:
+  # clangd parses CUDA with clang's own frontend, which does not know nvcc's flags
+  Remove:
+    - -forward-unknown-to-host-compiler
+    - --generate-code*
+  Add:
+    - --cuda-gpu-arch=sm_87
+    - --cuda-path=/usr/local/cuda
+    - -std=c++17
+    # Allow variadic CUDA functions, as in CCCL's .clangd
+    - "-Xclang=-fcuda-allow-variadic-functions"
+Diagnostics:
+  # False positives from clang on cub/detail/unit_word.cuh, which nvcc accepts: clang does not evaluate the member
+  # variable template __is_multiple as a constant inside its own class, which WarpBitonicSort::TempStorage depends on
+  Suppress:
+    - typename_nested_not_found
+    - static_assert_expression_is_not_constant

@@ -1,0 +1,56 @@
+cmake_minimum_required(VERSION 3.24)
+
+project(cub_minmax_bitonic CUDA)
+
+# For clangd, see .clangd
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+include(cmake/CPM.cmake)
+
+# Pin CCCL upstream at the (currently) latest commit
+set(CCCL_REPOSITORY "https://github.com/NVIDIA/cccl" CACHE STRING "Git repository to fetch CCCL from")
+set(CCCL_TAG "26210d7cce" CACHE STRING "CCCL commit to fetch")
+
+# The proposed change to CUB, as patches on top of CCCL_TAG. Without them, everything builds against upstream as is.
+option(CCCL_APPLY_PATCHES "Apply patches/*.patch to CCCL" ON)
+file(GLOB CCCL_PATCHES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/patches/*.patch")
+list(SORT CCCL_PATCHES)
+set(cccl_patch_args)
+if (CCCL_APPLY_PATCHES AND CCCL_PATCHES)
+  set(cccl_patch_args PATCHES ${CCCL_PATCHES})
+endif()
+
+CPMAddPackage(NAME CCCL GIT_REPOSITORY "${CCCL_REPOSITORY}" GIT_TAG ${CCCL_TAG} ${cccl_patch_args})
+
+set(PROBE_ARCHITECTURES "80-real;87-real;90-real;120-real" CACHE STRING "Architectures to generate SASS for")
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+# Compiles one probe source with one set of compiler flags, e.g. with and without --use_fast_math
+function(add_probe_set name source)
+  add_library(${name} OBJECT ${source})
+  target_link_libraries(${name} PRIVATE CCCL::CCCL)
+  target_compile_features(${name} PRIVATE cuda_std_17)
+  target_compile_options(${name} PRIVATE ${ARGN})
+  set_target_properties(${name} PROPERTIES CUDA_ARCHITECTURES "${PROBE_ARCHITECTURES}")
+  list(APPEND PROBE_TARGETS ${name})
+  set(PROBE_TARGETS ${PROBE_TARGETS} PARENT_SCOPE)
+endfunction()
+
+add_probe_set(probes_default probes/bool_comparator.cu)
+add_probe_set(probes_fast_math probes/bool_comparator.cu --use_fast_math)
+add_probe_set(probes_minmax probes/minmax_comparator.cu)
+
+# Disassembles probes and write opcode tables
+set(count_args)
+foreach (target IN LISTS PROBE_TARGETS)
+  list(APPEND count_args --objects ${target} "$<TARGET_OBJECTS:${target}>")
+endforeach()
+add_custom_target(
+  tables
+  COMMAND
+    Python3::Interpreter "${CMAKE_SOURCE_DIR}/scripts/count_sass_opcodes.py" --out-dir "${CMAKE_SOURCE_DIR}/results" ${count_args}
+  DEPENDS ${PROBE_TARGETS}
+  COMMAND_EXPAND_LISTS
+  VERBATIM
+)
