@@ -115,8 +115,8 @@ GPU time on Jetson Orin (sm_87):
   `__half` with the `bool` comparator. Against `__half` with the min/max operator, the packing alone gains 1.5x to 1.8x.
 - **Length 16** is partly bound by global memory for every case that is fast enough: `float` with min/max and `__half2`
   reach about 80% of the bandwidth there.
-- **Noise:** the min/max cases are stable between runs, but `float` with the `bool` comparator varies by up to 7% between
-  runs, with single runs up to 13% noise. The slow outliers likely come from the desktop, which shares the GPU on Orin.
+
+**NOTE:** the benchmarks are executed with a desktop attached in my case, so noise level is quite high!
 
 Generated table: [results/bench_kth_orin.md](results/bench_kth_orin.md)
 
