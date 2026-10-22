@@ -85,57 +85,14 @@ order for all pairs.
 `fmin` and `fmax` break this for NaN. The operator in the probes is therefore only valid for keys
 without NaN!
 
-## Requirements
-
-- CUDA Toolkit (`nvcc`, `cuobjdump`, `cu++filt`)
-- CMake 3.24 or newer
-- Python 3
-- Ninja (optional)
-
-No GPU is needed for the SASS tables.
-
-## Generate the tables
-
-```bash
-cmake -S . -B build -G Ninja
-cmake --build build --target tables
-```
-
-This fetches CCCL at the commit pinned in `CMakeLists.txt`, compiles the probes in `probes/` and writes to `results/`:
-
-- `<target>.md`: opcode counts per kernel and architecture
-- `<target>.sass`: raw disassembly (not tracked)
-
-There is one target per probe and set of compiler flags: `probes_default` and `probes_fast_math` for the `bool`
-comparator, `probes_minmax` for the min/max operator.
-
-After changing `CMakeLists.txt` or a patch in `patches/`, delete `build/` and configure again. Otherwise CMake applies
-the patches a second time to the already patched copy of CCCL, and the configure step fails.
-
-## Correctness check
-
-```bash
-cmake --build build --target check_sort
-./build/check_sort
-```
-
-Needs a GPU of one of the probe architectures. Sorts 1024 random arrays per case on the GPU, one array per thread, and
-compares every array against `std::sort` on the host. The keys are integers from -20 to 20, so there are many
-duplicates. The cases cover the `bool` comparator for `float` with lengths 7, 16 and 40 and for `__half` with length 40, and the
-min/max operator for `int`, `float`, `double`, `__half` and `__half2` with lengths 7, 16 and 40. The probes and the
-check share their kernels in `probes/kernels.cuh`.
-
-## Options
+## The proposed change
 
 The proposed change (prototype) to CUB lives in `patches/` and is applied on top of the pinned commit. The patch is generated
-with `git format-patch` from
-[`lennartvoelz/cccl@3c21e9e6e1`](https://github.com/lennartvoelz/cccl/commit/3c21e9e6e148e9db956df7eaa63dddeaa308a12f)
+with `git format-patch` from the commits up to
+[`lennartvoelz/cccl@688bb93311`](https://github.com/lennartvoelz/cccl/commit/688bb933112657c344a79c6c9b93e171ba2cefc8)
 on the branch `bitonic-minmax-issue`
-([compare](https://github.com/lennartvoelz/cccl/compare/26210d7cce...3c21e9e6e148e9db956df7eaa63dddeaa308a12f)).
+([compare](https://github.com/lennartvoelz/cccl/compare/26210d7cce...688bb933112657c344a79c6c9b93e171ba2cefc8)).
 
-## Count opcodes
+## Reproduce the results
 
-```bash
-python3 scripts/count_sass_opcodes.py --out-dir results --objects <name> <object files...>
-```
-
+To generate the tables and run the correctness check, see [REPRODUCE.md](REPRODUCE.md).
