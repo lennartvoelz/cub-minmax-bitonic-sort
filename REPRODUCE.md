@@ -1,6 +1,6 @@
 # Reproduce the results
 
-How to obtain the SASS tables and run the correctness check from the [README](README.md).
+How to obtain the SASS tables, the correctness check and the benchmark from the [README](README.md).
 
 ## Requirements
 
@@ -40,6 +40,19 @@ Needs a GPU of one of the probe architectures. Sorts 1024 random arrays per case
 compares every array against `std::sort` on the host. The keys are integers from -20 to 20, so there are many
 duplicates. The cases cover the `bool` comparator for `float` with lengths 7, 16 and 40 and for `__half` with length
 40, and the min/max operator for `int`, `float`, `double`, `__half` and `__half2` with lengths 7, 16 and 40.
+
+## Benchmark
+
+```bash
+cmake --build build --target bench_table
+```
+
+Needs a GPU of one of the probe architectures. Builds `bench_kth`, runs every case at lengths 16, 32, 40, 48, 56 and 64,
+and writes the GPU times and speedups to `results/bench_kth_<device>.md`. Uses [NVBench](https://github.com/NVIDIA/nvbench)
+at the commit CCCL pins, fetched at configure time.
+
+To run the benchmark by hand, e.g. for a subset of the lengths, call `./build/bench_kth -a Length=[16,40]`.
+`./build/bench_kth --help` lists all options. `scripts/bench_table.py` turns its `--csv` output into the table.
 
 ## Options
 

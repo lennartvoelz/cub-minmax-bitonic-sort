@@ -47,6 +47,29 @@ target_link_libraries(check_sort PRIVATE CCCL::CCCL)
 target_compile_features(check_sort PRIVATE cuda_std_17)
 set_target_properties(check_sort PROPERTIES CUDA_ARCHITECTURES "${PROBE_ARCHITECTURES}")
 
+# Throughput of the k-th element of a sliding window, bool comparator vs min/max operator. Uses the NVBench commit
+# that CCCL pins. NVBench builds its library for CMAKE_CUDA_ARCHITECTURES.
+set(CMAKE_CUDA_ARCHITECTURES "${PROBE_ARCHITECTURES}")
+CPMAddPackage(
+  NAME nvbench
+  GITHUB_REPOSITORY NVIDIA/nvbench
+  GIT_TAG 16761f0bf755ba53889a4a964997bcd906b07582
+  OPTIONS "NVBench_ENABLE_EXAMPLES OFF" "NVBench_ENABLE_TESTING OFF"
+)
+add_executable(bench_kth benchmarks/kth_element.cu)
+target_link_libraries(bench_kth PRIVATE CCCL::CCCL nvbench::main)
+target_compile_features(bench_kth PRIVATE cuda_std_17)
+set_target_properties(bench_kth PROPERTIES CUDA_ARCHITECTURES "${PROBE_ARCHITECTURES}")
+
+# Runs the benchmark on the current GPU and writes its table to results/bench_kth_<device>.md
+add_custom_target(
+  bench_table
+  COMMAND bench_kth --no-batch --quiet --csv "${CMAKE_BINARY_DIR}/bench_kth.csv"
+  COMMAND Python3::Interpreter "${CMAKE_SOURCE_DIR}/scripts/bench_table.py" "${CMAKE_BINARY_DIR}/bench_kth.csv" --out-dir "${CMAKE_SOURCE_DIR}/results"
+  DEPENDS bench_kth
+  VERBATIM
+)
+
 # Disassembles probes and write opcode tables
 set(count_args)
 foreach (target IN LISTS PROBE_TARGETS)
