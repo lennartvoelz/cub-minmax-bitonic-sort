@@ -15,7 +15,7 @@ CLASSES = {
 FUNCTION_RE = re.compile(r"Function : (\S+)")
 ARCH_RE = re.compile(r"arch = (sm_\d+\w*)")
 # Instruction lines look like: /*0080*/  @!P0 FSEL R3, R4, R5, P1 ;
-INSTRUCTION_RE = re.compile(r"/\*[0-9a-f]{4}\*/\s+(?:@!?U?P\w+\s+)?([A-Z][A-Z0-9_]*)")
+INSTRUCTION_RE = re.compile(r"/\*[0-9a-f]{4,}\*/\s+(?:@!?U?P\w+\s+)?([A-Z][A-Z0-9_]*)")
 
 
 def disassemble(objects):

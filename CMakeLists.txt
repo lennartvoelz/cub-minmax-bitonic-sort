@@ -41,6 +41,12 @@ add_probe_set(probes_default probes/bool_comparator.cu)
 add_probe_set(probes_fast_math probes/bool_comparator.cu --use_fast_math)
 add_probe_set(probes_minmax probes/minmax_comparator.cu)
 
+# Sorts random arrays on the GPU and compares them against std::sort. Needs a GPU of one of PROBE_ARCHITECTURES to run.
+add_executable(check_sort checks/check_sort.cu)
+target_link_libraries(check_sort PRIVATE CCCL::CCCL)
+target_compile_features(check_sort PRIVATE cuda_std_17)
+set_target_properties(check_sort PROPERTIES CUDA_ARCHITECTURES "${PROBE_ARCHITECTURES}")
+
 # Disassembles probes and write opcode tables
 set(count_args)
 foreach (target IN LISTS PROBE_TARGETS)
